@@ -1,0 +1,64 @@
+!pip3 install pandas-ta
+!pip3 install yfinance
+!pip install tzlocal
+
+import pandas_ta as ta
+import yfinance as yf
+import numpy as np
+from datetime import date, datetime, time, timedelta
+import tzlocal
+import pytz
+import pandas as pd
+from time import sleep
+import traceback
+import requests
+
+def aggregate(df):
+  if df.shape[0] == 6 :
+    date = df['date'].values[0]
+    open = df['open']
+    high = df.high.max()
+    low = df.low.min()
+    close = df['close']
+    volume = df.volume.sum()
+  else:
+    date = df.date.iloc[-1:].values[0]
+    open = df.open.iloc[:1].values[0]
+    high = df.high.max()
+    low = df.low.min()
+    close = df.close.iloc[-1:].values[0]
+    volume = df.volume.sum()
+  return {'date':date, 'open': open, 'high': high, 'low': low, 'close': close, 'volume': volume}
+
+def agg_loop(df,time_step=2):
+  data = []
+  i=0
+  print(df.shape[0])
+  while i < df.shape[0]:
+      if df['date'].iloc[i].hour ==9 and df['date'].iloc[i].minute == 15:
+        data.append(aggregate(df.iloc[i:(i+time_step),]))
+        i+=1
+        continue
+      if df['date'].iloc[i].hour ==15 and df['date'].iloc[i].minute == 15:
+        data.append(aggregate(df.iloc[i:(i+time_step),]))
+        i+=1
+        continue
+      data.append(aggregate(df.iloc[i:(i+time_step),]))
+      # if df['date'].iloc[i+n].hour ==15 and df['date'].iloc[i+n].minute == 30 or df['date'].iloc[i+n].hour ==9 and df['date'].iloc[i+n].minute == 15:
+      i+=time_step
+  data = pd.DataFrame(data)
+  data = data.round(2)
+  # tz = timezone('Asia/Kolkata')
+  
+  data['date'] = data['date'].dt.tz_localize('utc').dt.tz_convert('Asia/Kolkata')
+  return data
+
+item = "SBIN"
+df = yf.download('{}.NS'.format(item), period='20d', interval = '1h')
+df.columns = ['open','high','low','close','adj_close','volume']
+df = df[['open','high','low','close','volume']]
+df.reset_index(inplace=True)
+df['date'] = df['index']
+df.drop('index',axis=1, inplace=True)
+data = agg_loop(df, time_step = 3)
+data
