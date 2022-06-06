@@ -1,0 +1,103 @@
+import pandas_ta as ta
+import yfinance as yf
+import numpy as np
+from datetime import date, datetime, time, timedelta
+import tzlocal
+import pytz
+import pandas as pd
+from time import sleep
+import traceback
+import requests
+import pandas as pd
+import numpy as np
+import yfinance as yf
+import pandas_datareader as pdr
+import datetime as dt
+import matplotlib.pyplot as plt
+import yfinance as yf
+
+
+
+Stock_Name = 'ADANIGREEN.NS'
+df = yf.download(Stock_Name,period='2y',interval='1d')
+type(df)
+df.tail(n=10)
+
+df=macd(df.copy())
+df=rsi(df.copy())
+df['RSI_14'] = ta.sma(df['RSI_14'],5)
+df=bollinger(df.copy())
+# df.fillna(0, inplace=True)
+df
+
+def RSI_signal_handler(df):    
+    buyPrice = []
+    sellPrice = []
+    rsi_signal = []
+    signal = -1
+    profit =0
+    for i in range(df.shape[0]):
+        if df['RSI_14'][i-4:i].min() < 40 and df['RSI_14'][i-1] < df['RSI_14'][i] and\
+        df['MACDh_12_26_9'][i] > 0 and df['MACDh_12_26_9'][i-3] <df['MACDh_12_26_9'][i-2] < df['MACDh_12_26_9'][i-1] < df['MACDh_12_26_9'][i] and signal != 1:
+
+                buyPrice.append(df['Close'][i])
+                sellPrice.append(np.nan)
+                buy_price = df['Close'][i]
+                signal = 1
+                rsi_signal.append(df['RSI_14'][i])
+
+        elif df['RSI_14'][i-3:i].max() > 60 and df['RSI_14'][i-1] > df['RSI_14'][i] and \
+         df['MACDh_12_26_9'][i-1] > df['MACDh_12_26_9'][i]and signal != -1:
+
+                buyPrice.append(np.nan)
+                sellPrice.append(df['Close'][i])
+                profit += (df['Close'][i]/ buy_price -1) *100
+                signal = -1
+                rsi_signal.append(df['RSI_14'][i])
+
+        else:
+            buyPrice.append(np.nan)
+            sellPrice.append(np.nan)
+            rsi_signal.append(np.nan)
+    return buyPrice, sellPrice, rsi_signal, profit
+            
+
+buyPrice, sellPrice, rsi_signal, profit = RSI_signal_handler(df)
+print(profit)
+
+
+
+def RSI_signal_handler(df):    
+    buyPrice = []
+    sellPrice = []
+    rsi_signal = []
+    signal = -1
+    for i in range(df.shape[0]):
+        if df['RSI_14'][i-1:i].max() < 40 and df['RSI_14'][i-1] < df['RSI_14'][i] and\
+        df['MACDh_12_26_9'][i] > 0 and df['MACDh_12_26_9'][i-1] <df['MACDh_12_26_9'][i-1] < df['MACDh_12_26_9'][i-1] < df['MACDh_12_26_9'][i] and signal != 1:
+
+                buyPrice.append(df['Close'][i])
+                sellPrice.append(np.nan)
+                buy_price = df['Close'][i]
+                signal = 1
+                rsi_signal.append(df['RSI_14'][i])
+
+        elif df['RSI_14'][i-1:i].max() > 60 and df['RSI_14'][i-1] > df['RSI_14'][i] and \
+         df['MACDh_12_26_9'][i-1] > df['MACDh_12_26_9'][i]and signal != -1:
+
+                buyPrice.append(np.nan)
+                sellPrice.append(df['Close'][i])
+                profit = (df['Close'][i]/ buy_price -1) *100
+                signal = -1
+                rsi_signal.append(df['RSI_14'][i])
+
+        else:
+            buyPrice.append(np.nan)
+            sellPrice.append(np.nan)
+            rsi_signal.append(np.nan)
+    return buyPrice, sellPrice, rsi_signal, profit
+            
+
+buyPrice, sellPrice, rsi_signal, profit = RSI_signal_handler(df)
+
+
